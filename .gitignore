@@ -45,6 +45,13 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Configuration files with secrets
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.local.json
+backend/.env
+**/secrets.json
+
 # Database files
 *.db
 *.sqlite

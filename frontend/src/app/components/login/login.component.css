@@ -1,0 +1,132 @@
+.auth-page {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)), url('/assets/images/hero_bus.png');
+  background-size: cover;
+  background-position: center;
+  padding: 40px 20px;
+}
+
+
+.auth-card { 
+  max-width: 460px; 
+  width: 100%; 
+  padding: 48px 40px; 
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--glass-border);
+}
+
+.auth-header { 
+  text-align: center; 
+  margin-bottom: 40px; 
+}
+
+.auth-header .logo-icon { 
+  font-size: 48px; 
+  display: block; 
+  margin-bottom: 16px; 
+}
+
+.auth-header h1 { 
+  font-size: 32px; 
+  font-weight: 800;
+  margin: 0 0 8px; 
+  color: var(--text-main);
+}
+
+.auth-header p { 
+  color: var(--text-muted); 
+  margin: 0; 
+  font-weight: 500;
+}
+
+.auth-btn { 
+  width: 100%; 
+  padding: 16px; 
+  margin-top: 12px; 
+  font-size: 16px; 
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.auth-footer { 
+  text-align: center; 
+  margin-top: 32px; 
+  color: var(--text-muted); 
+  font-size: 14px; 
+  font-weight: 500;
+}
+
+.auth-footer a { 
+  color: var(--primary); 
+  text-decoration: none; 
+  font-weight: 700;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+.alert { 
+  padding: 14px 16px; 
+  border-radius: var(--radius-md); 
+  margin-bottom: 24px; 
+  font-size: 14px; 
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alert-error { 
+  background: var(--alert-error-bg); 
+  border: 1px solid var(--alert-error-border); 
+  color: var(--alert-error-text); 
+}
+
+.alert-success { 
+  background: var(--alert-success-bg); 
+  border: 1px solid var(--alert-success-border); 
+  color: var(--alert-success-text); 
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-color);
+  color: var(--text-main);
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.input-group input.error {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.input-group input.error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 4px;
+  display: block;
+}

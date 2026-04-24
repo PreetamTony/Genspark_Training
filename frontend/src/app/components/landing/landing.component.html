@@ -1,0 +1,51 @@
+<div class="hero-section" style="background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)), url('/assets/images/hero_bus.png'); background-size: cover; background-position: center;">
+
+  <div class="container hero-content">
+
+    <div class="hero-text">
+      <div class="hero-logo-container">
+        <img src="assets/images/logo.png" alt="NexBus Logo" class="hero-logo">
+      </div>
+      <h1>Premium Bus Travel,<br>Redefined.</h1>
+      <p>Experience the ultimate comfort and convenience. Book your next journey with NexBus.</p>
+    </div>
+
+    
+    <div class="search-card card glass-panel">
+      <h2>Where to?</h2>
+      <form (ngSubmit)="onSearch()">
+        <div class="search-fields">
+          <div class="input-group">
+            <label>From</label>
+            <input type="text" [(ngModel)]="searchQuery.source" name="source" placeholder="E.g., Bengaluru" required>
+          </div>
+          
+          <button type="button" class="swap-btn" (click)="swapLocations()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+          </button>
+          
+          <div class="input-group">
+            <label>To</label>
+            <input type="text" [(ngModel)]="searchQuery.destination" name="destination" placeholder="E.g., Mumbai" required>
+          </div>
+          
+          <div class="input-group">
+            <label>Date</label>
+            <input type="date" [(ngModel)]="searchQuery.date" name="date" required>
+          </div>
+        </div>
+        
+        <div class="popular-locations">
+          <h4>Popular cities</h4>
+          <div class="location-chips">
+            @for (loc of popularLocations; track loc.id) {
+              <button type="button" class="chip" (click)="searchQuery.source = loc.name">{{ loc.name }}</button>
+            }
+          </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary search-btn">Search Buses</button>
+      </form>
+    </div>
+  </div>
+</div>

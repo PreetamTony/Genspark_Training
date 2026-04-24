@@ -1,0 +1,17 @@
+<div class="route-map-container">
+  <div 
+    [id]="mapId" 
+    class="route-map"
+    [style.height]="height">
+  </div>
+  <div class="map-legend" *ngIf="source && destination">
+    <div class="legend-item">
+      <div class="legend-marker source-marker">A</div>
+      <span>{{ source }} (Source)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-marker dest-marker">B</div>
+      <span>{{ destination }} (Destination)</span>
+    </div>
+  </div>
+</div>

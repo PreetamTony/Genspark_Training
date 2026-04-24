@@ -1,0 +1,329 @@
+<div class="bus-details-container">
+  <!-- Bus Header -->
+  <div class="bus-header card glass-panel">
+    <div class="bus-title">
+      <div class="operator-info">
+        <h2>{{ bus?.operator?.companyName || 'Operator' }}</h2>
+        <div class="bus-type">{{ bus?.busType || bus?.bus?.type || 'Bus' }}</div>
+        <div class="bus-reg">{{ bus?.registrationNumber }}</div>
+      </div>
+      <div class="rating-section">
+        <div class="rating">
+          <span class="rating-score">{{ bus?.rating || 0 }}</span>
+          <span class="rating-stars">
+            @for (star of getRatingStars(bus?.rating || 0); track $index) {
+              <span>{{ star }}</span>
+            }
+          </span>
+        </div>
+        <div class="rating-count">{{ bus?.totalRatings || 0 }} Ratings</div>
+        @if (bus?.onTimePercentage > 0) {
+          <div class="on-time">
+            <span class="on-time-badge">Highly On Time</span>
+            <span class="on-time-text">{{ bus?.onTimeTrips }} of {{ bus?.totalTrips }} past trips</span>
+          </div>
+        }
+      </div>
+    </div>
+    
+    <div class="journey-info">
+      <div class="time-section">
+        <div class="time-block">
+          <span class="time">{{ formatTime(schedule?.departureTime) }}</span>
+          <span class="date">{{ formatDate(schedule?.departureTime) }}</span>
+          <span class="label">{{ schedule?.pickupPoint }}</span>
+        </div>
+        <div class="duration-block">
+          <div class="duration-line"></div>
+          <span>{{ getDuration(schedule?.departureTime, schedule?.arrivalTime) }}</span>
+        </div>
+        <div class="time-block">
+          <span class="time">{{ formatTime(schedule?.arrivalTime) }}</span>
+          <span class="date">{{ formatDate(schedule?.arrivalTime) }}</span>
+          <span class="label">{{ schedule?.dropPoint }}</span>
+        </div>
+      </div>
+      
+      <div class="price-section">
+        <div class="price">₹{{ schedule?.basePrice }}</div>
+        <div class="price-note">+ platform fee</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-navigation">
+    <button class="tab-btn" [class.active]="activeTab === 'highlights'" (click)="setActiveTab('highlights')">Highlights</button>
+    <button class="tab-btn" [class.active]="activeTab === 'policies'" (click)="setActiveTab('policies')">Policies</button>
+    <button class="tab-btn" [class.active]="activeTab === 'boarding'" (click)="setActiveTab('boarding')">Boarding Points</button>
+    <button class="tab-btn" [class.active]="activeTab === 'dropping'" (click)="setActiveTab('dropping')">Dropping Points</button>
+    <button class="tab-btn" [class.active]="activeTab === 'features'" (click)="setActiveTab('features')">Bus Features</button>
+    <button class="tab-btn" [class.active]="activeTab === 'reviews'" (click)="setActiveTab('reviews')">Reviews</button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <!-- Highlights Tab -->
+    @if (activeTab === 'highlights') {
+      <div class="highlights-content">
+        <div class="highlight-section">
+          <h3>Cancellation Policy</h3>
+          <div class="policy-table">
+            <div class="policy-header">
+              <span>Time window</span>
+              <span>Refund</span>
+            </div>
+            @for (policy of parseCancellationPolicy(bus?.policies?.cancellationPolicy); track $index) {
+              <div class="policy-row">
+                <span>{{ policy.timeWindow }}</span>
+                <span>{{ policy.refund }}</span>
+              </div>
+            }
+          </div>
+          <div class="policy-note">
+            <p>Add Free Cancellation while booking to get a 100% refund on cancellation.</p>
+            <p>* Cancellation charges are computed on a per seat basis. Above cancellation fare is calculated based on seat fare of ₹{{ schedule?.basePrice }}</p>
+            <p>* Cancellation charges are calculated based on service start date + time at {{ formatDate(schedule?.departureTime) }}</p>
+            <p>* Ticket cannot be cancelled after scheduled bus departure time from the first boarding point</p>
+            <p>* Note: Cancellation charges mentioned above are excluding GST</p>
+            <p>* For group bookings individual seats can be cancelled.</p>
+          </div>
+        </div>
+
+        <div class="highlight-section">
+          <h3>Date Change Policy</h3>
+          <div class="policy-table">
+            <div class="policy-header">
+              <span>Time before travel</span>
+              <span>Date change charges</span>
+            </div>
+            <div class="policy-row">
+              <span>{{ bus?.policies?.reschedulePolicy?.split('Before')[1]?.split('-')[0]?.trim() || 'Before departure' }}</span>
+              <span>{{ bus?.policies?.reschedulePolicy?.split('-')[1]?.trim() || 'FREE' }}</span>
+            </div>
+          </div>
+        </div>
+
+        @if (bus?.onTimePercentage > 95) {
+          <div class="highlight-section">
+            <h3>Reaches {{ schedule?.route?.destination }}</h3>
+            <div class="on-time-highlight">
+              <span class="on-time-badge">Highly On Time</span>
+              <span class="on-time-text">{{ bus?.onTimeTrips }} of {{ bus?.totalTrips }} past trips in the last 15 days</span>
+              <div class="on-time-percentage">{{ bus?.onTimePercentage }}%</div>
+            </div>
+            <p class="on-time-disclaimer">*Insights based on tracking information exclusive to NexBus</p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Policies Tab -->
+    @if (activeTab === 'policies') {
+      <div class="policies-content">
+        <div class="policy-section">
+          <h3>Child passenger policy</h3>
+          <p>{{ bus?.policies?.childPolicy || 'Children above the age of 3 will need a ticket' }}</p>
+        </div>
+
+        <div class="policy-section">
+          <h3>Luggage policy</h3>
+          <p>{{ bus?.policies?.luggagePolicy || '1 pieces of luggage will be accepted free of charge per passenger. Excess items will be chargeable' }}</p>
+          <p>Excess baggage over 10 kgs per passenger will be chargeable</p>
+        </div>
+
+        <div class="policy-section">
+          <h3>Pets Policy</h3>
+          <p>{{ bus?.policies?.petPolicy || 'Pets are not allowed' }}</p>
+        </div>
+
+        <div class="policy-section">
+          <h3>Toilet Usage Policy</h3>
+          <p>{{ bus?.policies?.toiletPolicy || 'In Bus Toilet with Only Urinal Facility' }}</p>
+        </div>
+
+        <div class="policy-section">
+          <h3>Liquor Policy</h3>
+          <p>{{ bus?.policies?.liquorPolicy || 'Carrying or consuming liquor inside the bus is prohibited. Bus operator reserves the right to deboard drunk passengers.' }}</p>
+        </div>
+
+        <div class="policy-section">
+          <h3>Pick up time policy</h3>
+          <p>Bus operator is not obligated to wait beyond the scheduled departure time of the bus. No refund request will be entertained for late arriving passengers.</p>
+        </div>
+      </div>
+    }
+
+    <!-- Boarding Points Tab -->
+    @if (activeTab === 'boarding') {
+      <div class="boarding-content">
+        <h3>Boarding point</h3>
+        <div class="points-list">
+          <div class="point-item">
+            <div class="point-info">
+              <span class="point-name">{{ schedule?.route?.source }}</span>
+              <span class="point-time">{{ formatTime(schedule?.departureTime) }}</span>
+              <span class="point-date">{{ formatDate(schedule?.departureTime).split(',')[0] }}</span>
+            </div>
+            <div class="point-address">{{ schedule?.pickupPoint }}</div>
+          </div>
+        </div>
+        <button class="view-all-btn" (click)="toggleBoardingPoints()">
+          {{ showAllBoardingPoints ? 'View less' : 'View all boarding points' }}
+        </button>
+      </div>
+    }
+
+    <!-- Dropping Points Tab -->
+    @if (activeTab === 'dropping') {
+      <div class="dropping-content">
+        <h3>Dropping point</h3>
+        <div class="points-list">
+          <div class="point-item">
+            <div class="point-info">
+              <span class="point-name">{{ schedule?.route?.destination }}</span>
+              <span class="point-time">{{ formatTime(schedule?.arrivalTime) }}</span>
+              <span class="point-date">{{ formatDate(schedule?.arrivalTime).split(',')[0] }}</span>
+            </div>
+            <div class="point-address">{{ schedule?.dropPoint }}</div>
+          </div>
+        </div>
+        <button class="view-all-btn" (click)="toggleDroppingPoints()">
+          {{ showAllDroppingPoints ? 'View less' : 'View all dropping points' }}
+        </button>
+      </div>
+    }
+
+    <!-- Bus Features Tab -->
+    @if (activeTab === 'features') {
+      <div class="features-content">
+        <h3>Bus Features</h3>
+        <div class="features-grid">
+          @for (feature of getActiveFeatures(); track feature) {
+            <div class="feature-item">
+              <span class="feature-icon">{{ getFeatureIcon(feature) }}</span>
+              <span class="feature-name">{{ getFeatureName(feature) }}</span>
+            </div>
+          }
+        </div>
+        
+        <div class="route-section">
+          <h3>Bus route</h3>
+          <div class="route-info">
+            <span class="route-distance">332 km · {{ getDuration(schedule?.departureTime, schedule?.arrivalTime) }}</span>
+            <div class="route-path">
+              <span>{{ schedule?.route?.source }}</span>
+              <span>→</span>
+              <span>{{ schedule?.route?.destination }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rest-stop-section">
+          <h3>Rest stop</h3>
+          <p>This bus has no rest stop</p>
+        </div>
+      </div>
+    }
+
+    <!-- Reviews Tab -->
+    @if (activeTab === 'reviews') {
+      <div class="reviews-content">
+        <div class="rating-summary">
+          <div class="rating-overview">
+            <div class="rating-score-large">{{ bus?.rating || 0 }}</div>
+            <div class="rating-stars-large">
+              @for (star of getRatingStars(bus?.rating || 0); track $index) {
+                <span>{{ star }}</span>
+              }
+            </div>
+            <div class="rating-count-large">{{ bus?.totalRatings || 0 }} Ratings</div>
+          </div>
+          
+          <div class="rating-breakdown">
+            <h4>Real Feedback from verified travellers</h4>
+            <div class="rating-bars">
+              <div class="rating-bar">
+                <span class="rating-label">5</span>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: 92%"></div>
+                </div>
+                <span class="rating-percentage">92%</span>
+              </div>
+              <div class="rating-bar">
+                <span class="rating-label">4</span>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: 6%"></div>
+                </div>
+                <span class="rating-percentage">6%</span>
+              </div>
+              <div class="rating-bar">
+                <span class="rating-label">3</span>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: 1%"></div>
+                </div>
+                <span class="rating-percentage">1%</span>
+              </div>
+              <div class="rating-bar">
+                <span class="rating-label">2</span>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: 0%"></div>
+                </div>
+                <span class="rating-percentage">0%</span>
+              </div>
+              <div class="rating-bar">
+                <span class="rating-label">1</span>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: 0%"></div>
+                </div>
+                <span class="rating-percentage">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="loved-by-travelers">
+          <h4>Loved by travelers</h4>
+          <div class="love-categories">
+            <div class="love-item">
+              <span class="love-category">Staff behavior</span>
+              <span class="love-count">(1027)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">Punctuality</span>
+              <span class="love-count">(1001)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">Cleanliness</span>
+              <span class="love-count">(985)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">Seat / Sleep Comfort</span>
+              <span class="love-count">(913)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">Driving</span>
+              <span class="love-count">(839)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">AC</span>
+              <span class="love-count">(748)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">Live tracking</span>
+              <span class="love-count">(681)</span>
+            </div>
+            <div class="love-item">
+              <span class="love-category">Rest stop hygiene</span>
+              <span class="love-count">(441)</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="view-all-btn" (click)="toggleReviews()">
+          {{ showAllReviews ? 'View less' : 'Read all 454 reviews' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>

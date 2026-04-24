@@ -1,0 +1,201 @@
+<div class="payment-page">
+  <div class="container">
+
+    @if (error) {
+      <div class="alert alert-error">{{ error }}</div>
+    }
+
+    @if (step === 'summary' && booking) {
+      <div class="payment-card card glass-panel">
+        <div class="payment-header">
+          <h1>Complete Your Booking</h1>
+          <div class="booking-id">Booking #{{ booking.bookingId }}</div>
+        </div>
+
+        <div class="trip-summary">
+          <div class="trip-route">{{ from }} → {{ to }}</div>
+          <div class="trip-date">{{ dep | date:'EEE, dd MMM yyyy HH:mm' }}</div>
+        </div>
+
+        <!-- Passenger Details Section -->
+        @if (selectedSeats && selectedSeats.length > 0) {
+          <div class="passenger-details-section">
+            <h3>Passenger Details</h3>
+            <div class="passengers-grid">
+              @for (seat of selectedSeats; track seat.id) {
+                <div class="passenger-card" [class]="getSeatGenderClass(seat)">
+                  <div class="seat-number">{{ seat.seatNumber }}</div>
+                  <div class="passenger-info">
+                    <div class="passenger-name">{{ getPassengerDisplay(seat) }}</div>
+                    <div class="passenger-gender">
+                      @if (passengerDetails[seat.id]?.gender === 'Male') {
+                        <span class="gender-badge male">👦 Male</span>
+                      } @else if (passengerDetails[seat.id]?.gender === 'Female') {
+                        <span class="gender-badge female">👧 Female</span>
+                      } @else {
+                        <span class="gender-badge other">👤 Other</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="price-box">
+          <div class="price-row-pay">
+            <span>Ticket Fare</span>
+            <span>₹{{ booking.totalPrice - booking.convenienceFee }}</span>
+          </div>
+          <div class="price-row-pay">
+            <span>Convenience Fee</span>
+            <span>₹{{ booking.convenienceFee }}</span>
+          </div>
+          <div class="price-row-pay total">
+            <span>Total Payable</span>
+            <span>₹{{ booking.totalPrice }}</span>
+          </div>
+        </div>
+
+        <div class="payment-form">
+          <h3>Card Details</h3>
+          
+          <div class="input-group">
+            <label for="cardNumber">Card Number</label>
+            <input 
+              id="cardNumber" 
+              type="text" 
+              [(ngModel)]="paymentDetails.cardNumber" 
+              name="cardNumber" 
+              placeholder="1234 5678 9012 3456"
+              maxlength="19"
+              (input)="formatCardNumber()"
+              [class.error]="formErrors['cardNumber']"
+              required>
+            @if (formErrors['cardNumber']) {
+              <div class="field-error">{{ formErrors['cardNumber'] }}</div>
+            }
+          </div>
+
+          <div class="input-group">
+            <label for="cardName">Cardholder Name</label>
+            <input 
+              id="cardName" 
+              type="text" 
+              [(ngModel)]="paymentDetails.cardName" 
+              name="cardName" 
+              placeholder="John Doe"
+              [class.error]="formErrors['cardName']"
+              required>
+            @if (formErrors['cardName']) {
+              <div class="field-error">{{ formErrors['cardName'] }}</div>
+            }
+          </div>
+
+          <div class="form-row">
+            <div class="input-group half">
+              <label for="expiryMonth">Expiry Date</label>
+              <div class="expiry-selects" [class.error]="formErrors['expiry']">
+                <select [(ngModel)]="paymentDetails.expiryMonth" name="expiryMonth" required>
+                  <option value="">Month</option>
+                  @for (month of getExpiryMonths(); track month) {
+                    <option [value]="month">{{ month.toString().padStart(2, '0') }}</option>
+                  }
+                </select>
+                <select [(ngModel)]="paymentDetails.expiryYear" name="expiryYear" required>
+                  <option value="">Year</option>
+                  @for (year of getExpiryYears(); track year) {
+                    <option [value]="year">{{ year }}</option>
+                  }
+                </select>
+              </div>
+              @if (formErrors['expiry']) {
+                <div class="field-error">{{ formErrors['expiry'] }}</div>
+              }
+            </div>
+
+            <div class="input-group half">
+              <label for="cvv">CVV</label>
+              <input 
+                id="cvv" 
+                type="text" 
+                [(ngModel)]="paymentDetails.cvv" 
+                name="cvv" 
+                placeholder="123"
+                maxlength="4"
+                [class.error]="formErrors['cvv']"
+                required>
+              @if (formErrors['cvv']) {
+                <div class="field-error">{{ formErrors['cvv'] }}</div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="payment-methods">
+          <h3>Choose Payment Method</h3>
+          <div class="method-grid">
+            <div class="method active">💳 Credit / Debit Card</div>
+            <div class="method disabled">🏦 Net Banking</div>
+            <div class="method disabled">📱 UPI</div>
+            <div class="method disabled">💰 Wallet</div>
+          </div>
+        </div>
+
+        <div class="demo-notice">⚡ Demo Mode — No real payment will be processed</div>
+
+        <button class="btn btn-primary pay-btn" (click)="processPayment()" [disabled]="loading">
+          {{ loading ? 'Processing...' : 'Pay ₹' + booking.totalPrice + ' Now' }}
+        </button>
+      </div>
+    }
+
+    @if (step === 'processing') {
+      <div class="status-card card glass-panel">
+        <div class="processing-animation">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+        </div>
+        <h2>Processing Payment...</h2>
+        <p>Please do not close this window</p>
+        <p class="processing-details">Securing your booking and confirming payment</p>
+      </div>
+    }
+
+    @if (step === 'confirmed') {
+      <div class="status-card card glass-panel success">
+        <div class="status-icon">✅</div>
+        <h2>Booking Confirmed!</h2>
+        <p>Your ticket has been sent to your email address.</p>
+        <div class="ticket-number">Booking ID: <strong>#{{ bookingId }}</strong></div>
+        <div class="success-details">
+          <p>Total Amount Paid: <strong>₹{{ booking.totalPrice }}</strong></p>
+          <p>Payment Method: <strong>Credit/Debit Card ending in {{ maskedCardNumber.slice(-4) }}</strong></p>
+        </div>
+        <div class="cta-buttons">
+          <button class="btn btn-primary" (click)="viewTickets()">View My Trips</button>
+          <button class="btn btn-outline" (click)="goHome()">Back to Home</button>
+        </div>
+      </div>
+    }
+
+    @if (step === 'failed') {
+      <div class="status-card card glass-panel error">
+        <div class="status-icon">❌</div>
+        <h2>Payment Failed</h2>
+        @if (error) {
+          <p>{{ error }}</p>
+        } @else {
+          <p>Something went wrong. Please try again.</p>
+        }
+        <div class="cta-buttons">
+          <button class="btn btn-primary" (click)="retry()">Try Again</button>
+          <button class="btn btn-outline" (click)="goHome()">Cancel</button>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

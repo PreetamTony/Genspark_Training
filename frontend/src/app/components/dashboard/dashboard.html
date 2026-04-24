@@ -1,0 +1,200 @@
+<div class="dashboard-page">
+  <div class="container">
+    
+    <!-- Search Section -->
+    <div class="search-section">
+      <div class="search-card card glass-panel">
+        <div class="search-header">
+          <h1>Find Your Perfect Journey</h1>
+          <p>Search buses across India with ease</p>
+        </div>
+
+        <form class="search-form" (ngSubmit)="searchBuses()">
+          @if (error) {
+            <div class="alert alert-error">{{ error }}</div>
+          }
+
+          <div class="location-inputs">
+            <div class="input-group">
+              <label for="source">From</label>
+              <div class="input-with-swap">
+                <input 
+                  id="source" 
+                  type="text" 
+                  [(ngModel)]="searchForm.source" 
+                  name="source" 
+                  placeholder="Enter source city"
+                  required>
+                <button type="button" class="swap-btn" (click)="swapLocations()" title="Swap locations">
+                  ⇄
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="destination">To</label>
+              <input 
+                id="destination" 
+                type="text" 
+                [(ngModel)]="searchForm.destination" 
+                name="destination" 
+                placeholder="Enter destination city"
+                required>
+            </div>
+
+            <div class="input-group">
+              <label for="date">Travel Date</label>
+              <input 
+                id="date" 
+                type="date" 
+                [(ngModel)]="searchForm.date" 
+                name="date"
+                [min]="minDate"
+                required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary search-btn" [disabled]="loading">
+            {{ loading ? 'Searching...' : 'Search Buses' }}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Route Map Preview -->
+    <div class="route-preview-section">
+      <div class="route-preview-card card glass-panel">
+        @if (searchForm.source && searchForm.destination) {
+          <h3>Route Preview: {{ searchForm.source }} → {{ searchForm.destination }}</h3>
+          <app-route-map 
+            [source]="searchForm.source" 
+            [destination]="searchForm.destination"
+            height="350px">
+          </app-route-map>
+        } @else {
+          <h3>Interactive Map - Enter Source & Destination</h3>
+          <app-route-map 
+            source="Chennai" 
+            destination="Bangalore"
+            height="350px">
+          </app-route-map>
+          <p style="text-align: center; margin-top: 1rem; color: #666;">
+            Enter your travel details above to see your specific route
+          </p>
+        }
+      </div>
+    </div>
+
+    <!-- Popular Locations -->
+    @if (popularLocations.length > 0) {
+      <div class="popular-section">
+        <h2>Popular Destinations</h2>
+        <div class="popular-grid">
+          @for (location of popularLocations; track location.id) {
+            <div class="popular-card" (click)="usePopularLocation(location, true)">
+              <div class="popular-icon">📍</div>
+              <div class="popular-name">{{ location.name }}</div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Recent Searches -->
+    @if (recentSearches.length > 0) {
+      <div class="recent-section">
+        <div class="recent-header">
+          <h2>Recent Searches</h2>
+          <button class="btn btn-link" (click)="clearRecentSearches()">Clear All</button>
+        </div>
+        <div class="recent-list">
+          @for (search of recentSearches; track $index) {
+            <div class="recent-item" (click)="useRecentSearch(search)">
+              <div class="recent-route">{{ search.source }} → {{ search.destination }}</div>
+              <div class="recent-date">{{ formatDate(search.date) }}</div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Search Results -->
+    @if (searchResults.length > 0) {
+      <div class="results-section">
+        <h2>Available Buses ({{ searchResults.length }})</h2>
+        
+        <!-- Route Map -->
+        <div class="route-map-section">
+          <h3>Route Map: {{ searchForm.source }} → {{ searchForm.destination }}</h3>
+          <app-route-map 
+            [source]="searchForm.source" 
+            [destination]="searchForm.destination"
+            height="400px">
+          </app-route-map>
+        </div>
+        <div class="results-grid">
+          @for (schedule of searchResults; track schedule.id) {
+            <div class="bus-card card glass-panel">
+              <div class="bus-header">
+                <div class="bus-operator">{{ schedule.operator.companyName }}</div>
+                <div class="bus-type">{{ schedule.bus.layout.type }}</div>
+              </div>
+
+              <div class="route-info">
+                <div class="route-point">
+                  <div class="time">{{ formatTime(schedule.departureTime) }}</div>
+                  <div class="city">{{ schedule.route.source }}</div>
+                </div>
+                <div class="route-line">
+                  <div class="duration">8h 30m</div>
+                </div>
+                <div class="route-point">
+                  <div class="time">{{ formatTime(schedule.arrivalTime) }}</div>
+                  <div class="city">{{ schedule.route.destination }}</div>
+                </div>
+              </div>
+
+              <div class="bus-details">
+                <div class="bus-reg">{{ schedule.bus.registrationNumber }}</div>
+                <div class="seats-info">
+                  <span class="available-seats">{{ schedule.availableSeats }}</span>
+                  <span class="total-seats">/ {{ schedule.totalSeats }} seats</span>
+                </div>
+              </div>
+
+              <div class="price-section">
+                <div class="price">{{ formatPrice(schedule.basePrice) }}</div>
+                <button class="btn btn-primary select-btn" (click)="selectBus(schedule)">
+                  Select Seats
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (loading) {
+      <div class="loading-section">
+        <div class="loading-card card glass-panel">
+          <div class="loading-spinner"></div>
+          <h2>Searching for buses...</h2>
+          <p>Finding the best options for your journey</p>
+        </div>
+      </div>
+    }
+
+    <!-- Empty State (when no search performed) -->
+    @if (!loading && searchResults.length === 0 && !error) {
+      <div class="empty-section">
+        <div class="empty-card card glass-panel">
+          <div class="empty-icon">🚌</div>
+          <h2>Start Your Journey</h2>
+          <p>Enter your travel details above to search for available buses</p>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

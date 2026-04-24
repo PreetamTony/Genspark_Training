@@ -1,0 +1,125 @@
+<div class="results-page">
+  <div class="container">
+    <div class="results-header">
+      <button class="btn-back" (click)="goBack()">← Back</button>
+      <div class="route-title">
+        <h1>{{ source }} → {{ destination }}</h1>
+        <span class="date-badge">{{ (date.includes('/') ? date : (date | date:'EEE, dd MMM yyyy')) || date }}</span>
+
+      </div>
+      <div class="sort-control">
+        <label>Sort by</label>
+        <select [(ngModel)]="sortBy" (change)="onSortChange()">
+          <option value="price">Price ↑</option>
+          <option value="seats">Seats Available</option>
+          <option value="departure">Departure Time</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Route Map Section -->
+    @if (source && destination) {
+      <div class="route-map-section">
+        <div class="route-map-card card glass-panel">
+          <h3>Route Map: {{ source }} → {{ destination }}</h3>
+          <app-route-map 
+            [source]="source" 
+            [destination]="destination"
+            height="350px">
+          </app-route-map>
+        </div>
+      </div>
+    }
+
+    @if (loading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Searching buses...</p>
+      </div>
+    }
+
+    @if (error) {
+      <div class="error-state">
+        <p>{{ error }}</p>
+
+      </div>
+    }
+
+    @if (!loading && results.length === 0 && !error) {
+      <div class="empty-state">
+        <h3>No buses found</h3>
+
+        <p>Try a different date or route.</p>
+      </div>
+    }
+
+    @if (!loading && results.length > 0) {
+      <div class="results-list">
+
+      @for (bus of results; track bus.id) {
+        <div class="bus-card card glass-panel">
+          <div class="bus-info">
+            <div class="operator-name">{{ bus.operator.companyName }}</div>
+            <div class="bus-type-badge">{{ bus.bus.type }}</div>
+            <div class="bus-reg">{{ bus.bus.registrationNumber }}</div>
+          </div>
+
+          <div class="time-section">
+            <div class="time-block">
+              <span class="time">{{ formatTime(bus.departureTime) }}</span>
+              <span class="label">Departure</span>
+            </div>
+            <div class="duration-block">
+              <div class="duration-line"></div>
+              <span>{{ getDuration(bus.departureTime, bus.arrivalTime) }}</span>
+            </div>
+            <div class="time-block">
+              <span class="time">{{ formatTime(bus.arrivalTime) }}</span>
+              <span class="label">Arrival</span>
+            </div>
+          </div>
+
+          <div class="seats-section">
+            <div class="seats-count" [class.low]="bus.availableSeats < 5">
+              {{ bus.availableSeats }}
+            </div>
+            <div class="seats-label">seats left</div>
+          </div>
+
+          <div class="price-section">
+            <div class="price">₹{{ bus.basePrice }}</div>
+            <div class="price-note">+ platform fee</div>
+            <div class="button-group">
+              <button class="btn btn-outline details-btn" 
+                (click)="showBusDetails(bus)">
+                View Details
+              </button>
+              <button class="btn btn-primary select-btn" 
+                [disabled]="bus.availableSeats === 0"
+                (click)="selectBus(bus)">
+                {{ bus.availableSeats === 0 ? 'Sold Out' : 'Select Seats' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  </div>
+</div>
+
+<!-- Bus Details Modal -->
+@if (selectedBus) {
+  <div class="modal-overlay" (click)="hideBusDetails()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Bus Details</h2>
+        <button class="modal-close" (click)="hideBusDetails()">×</button>
+      </div>
+      <div class="modal-body">
+        <app-bus-details [bus]="selectedBus.bus" [schedule]="selectedBus"></app-bus-details>
+      </div>
+    </div>
+  </div>
+}

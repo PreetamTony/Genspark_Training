@@ -1,0 +1,32 @@
+<div class="auth-page">
+  <div class="auth-card card glass-panel">
+    <div class="auth-header">
+
+      <h1>Welcome back</h1>
+      <p>Sign in to your NexBus account</p>
+    </div>
+    <form (ngSubmit)="onSubmit()">
+      @if (error) {
+        <div class="alert alert-error">{{ error }}</div>
+      }
+      <div class="input-group">
+        <label for="email">Email address</label>
+        <input id="email" type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" required autocomplete="email" [class.error]="emailError" (input)="clearEmailError()">
+        @if (emailError) {
+          <div class="field-error">{{ emailError }}</div>
+        }
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" [(ngModel)]="password" name="password" placeholder="Enter your password" required autocomplete="off" [class.error]="passwordError" (input)="clearPasswordError()">
+        @if (passwordError) {
+          <div class="field-error">{{ passwordError }}</div>
+        }
+      </div>
+      <button type="submit" class="btn btn-primary auth-btn" [disabled]="loading">
+        {{ loading ? 'Signing in...' : 'Sign In' }}
+      </button>
+    </form>
+    <p class="auth-footer">Don't have an account? <a href="/register">Create one</a></p>
+  </div>
+</div>

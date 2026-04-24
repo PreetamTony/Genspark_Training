@@ -1,0 +1,50 @@
+<nav class="navbar glass-panel">
+  <div class="container nav-content">
+    <a class="logo" routerLink="/">
+      <img src="assets/images/logo.png" alt="NexBus Logo" class="logo-img">
+    </a>
+
+    
+    <div class="nav-right">
+      <div class="nav-links">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" class="nav-item">Home</a>
+        @if (!user) {
+          <a routerLink="/login" class="nav-item">Sign In</a>
+          <a routerLink="/register" class="btn btn-primary btn-sm">Get Started</a>
+        } @else {
+          @if (user.role === 'User') {
+            <a routerLink="/profile" class="nav-item">My Trips</a>
+          }
+          @if (user.role === 'Operator') {
+            <a routerLink="/operator" class="nav-item">Dashboard</a>
+          }
+          @if (user.role === 'Admin') {
+            <a routerLink="/admin" class="nav-item">Admin Panel</a>
+          }
+          <div class="user-menu">
+            <span class="user-badge">{{ user.name[0] | uppercase }}</span>
+            <span class="user-name">{{ user.name }}</span>
+            <button (click)="logout()" class="btn btn-outline btn-sm">Logout</button>
+          </div>
+        }
+      </div>
+
+      <div class="theme-toggle-container">
+        <button class="theme-toggle" (click)="toggleTheme()" [title]="'Switch to ' + (theme === 'light' ? 'dark' : 'light') + ' mode'">
+          @if (theme === 'dark') {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          } @else {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <router-outlet></router-outlet>
+</main>
+
+<!-- Nexbot Chatbot -->
+<app-chatbot></app-chatbot>

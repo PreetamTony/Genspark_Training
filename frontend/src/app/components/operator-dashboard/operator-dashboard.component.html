@@ -1,0 +1,225 @@
+<div class="dashboard-page">
+  <div class="container">
+    <div class="dash-header">
+      <h1>🚌 Operator Dashboard</h1>
+      <p>Welcome, {{ user?.name }}</p>
+    </div>
+
+    @if (message) { 
+  <div class="message-bar" [class]="message.includes('created') || message.includes('updated') || message.includes('deleted') ? 'success' : 'error'">
+    {{ message }}
+  </div> 
+}
+
+    <div class="dash-tabs">
+      <button [class.active]="activeTab==='buses'" (click)="activeTab='buses'">My Buses</button>
+      <button [class.active]="activeTab==='schedules'" (click)="activeTab='schedules'">Schedules</button>
+      <button [class.active]="activeTab==='coupons'" (click)="activeTab='coupons'">Coupons</button>
+      <button [class.active]="activeTab==='add-bus'" (click)="activeTab='add-bus'">+ Add Bus</button>
+      <button [class.active]="activeTab==='add-schedule'" (click)="activeTab='add-schedule'">+ Add Schedule</button>
+      <button [class.active]="activeTab==='add-coupon'" (click)="activeTab='add-coupon'; resetCouponForm()">+ Add Coupon</button>
+    </div>
+
+    <!-- My Buses -->
+    @if (activeTab === 'buses') {
+      <div class="tab-content">
+        @if (buses.length === 0) { <div class="empty">No buses yet. Submit a request to add one!</div> }
+        @for (bus of buses; track bus.id) {
+          <div class="item-card card glass-panel">
+            <div class="item-main">
+              <div class="item-title">{{ bus.registrationNumber }}</div>
+              <div class="item-sub">{{ bus.layout?.name }}</div>
+              <span class="status-badge" [class]="bus.status.toLowerCase().replace(' ','')">{{ bus.status }}</span>
+            </div>
+            <div class="item-actions">
+              <button class="action-btn warn" (click)="updateBusStatus(bus.id, 'DownForMaintenance')">Maintenance</button>
+              <button class="action-btn danger" (click)="updateBusStatus(bus.id, 'Disabled')">Disable</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Schedules -->
+    @if (activeTab === 'schedules') {
+      <div class="tab-content">
+        @if (schedules.length === 0) { <div class="empty">No schedules yet.</div> }
+        @for (s of schedules; track s.id) {
+          <div class="item-card card glass-panel">
+            <div class="item-main">
+              <div class="item-title">{{ s.from?.name || s.from }} → {{ s.to?.name || s.to }}</div>
+              <div class="item-sub">{{ s.departureTime | date:'EEE, dd MMM yyyy HH:mm' }}</div>
+              <div class="item-sub">{{ s.registrationNumber }} | ₹{{ s.basePrice }}</div>
+            </div>
+            <span class="status-badge" [class]="s.status.toLowerCase()">{{ s.status }}</span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Add Bus Form -->
+    @if (activeTab === 'add-bus') {
+      <div class="form-card card glass-panel">
+        <h2>Request New Bus</h2>
+        <div class="input-group">
+          <label>Registration Number</label>
+          <input type="text" [(ngModel)]="busForm.registrationNumber" placeholder="TN01AB1234">
+        </div>
+        <div class="input-group">
+          <label>Select Layout</label>
+          <select [(ngModel)]="busForm.layoutId">
+            <option value="0">Choose a layout</option>
+            @for (l of layouts; track l.id) {
+              <option [value]="l.id">{{ l.name }} ({{ l.totalCapacity }} seats)</option>
+            }
+          </select>
+        </div>
+        <button class="btn btn-primary" (click)="submitBusRequest()" [disabled]="loading">
+          {{ loading ? 'Submitting...' : 'Submit Request' }}
+        </button>
+      </div>
+    }
+
+    <!-- Coupons -->
+    @if (activeTab === 'coupons') {
+      <div class="tab-content">
+        @if (coupons.length === 0) { <div class="empty">No coupons created yet.</div> }
+        @for (coupon of coupons; track coupon.id) {
+          <div class="item-card card glass-panel">
+            <div class="item-main">
+              <div class="item-title">{{ coupon.code }}</div>
+              <div class="item-sub">
+                @if (coupon.discountPercent > 0) {
+                  {{ coupon.discountPercent }}% off
+                } @else {
+                  ₹{{ coupon.discountAmount }} off
+                }
+              </div>
+              @if (coupon.validFrom || coupon.validTo) {
+                <div class="item-sub">
+                  @if (coupon.validFrom) { Valid from: {{ coupon.validFrom | date:'shortDate' }} }
+                  @if (coupon.validFrom && coupon.validTo) { - }
+                  @if (coupon.validTo) { until: {{ coupon.validTo | date:'shortDate' }} }
+                </div>
+              }
+              <div class="item-sub">Used {{ coupon.usageCount || 0 }} times</div>
+              <span class="status-badge" [class]="coupon.isActive ? 'active' : 'inactive'">
+                {{ coupon.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div class="item-actions">
+              <button class="action-btn primary" (click)="editCoupon(coupon)">Edit</button>
+              <button class="action-btn danger" (click)="deleteCoupon(coupon)">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Add Coupon Form -->
+    @if (activeTab === 'add-coupon') {
+      <div class="form-card card glass-panel">
+        <h2>{{ editingCoupon ? 'Edit Coupon' : 'Create Coupon' }}</h2>
+        <div class="input-group">
+          <label>Coupon Code</label>
+          <input type="text" [(ngModel)]="couponForm.code" placeholder="e.g., SUMMER20" required>
+        </div>
+        <div class="input-group">
+          <label>Discount Type</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="discountType" [(ngModel)]="couponForm.discountType" [value]="'amount'">
+              Flat Amount (₹)
+            </label>
+            <label>
+              <input type="radio" name="discountType" [(ngModel)]="couponForm.discountType" [value]="'percent'">
+              Percentage (%)
+            </label>
+          </div>
+        </div>
+        @if (couponForm.discountType === 'amount') {
+          <div class="input-group">
+            <label>Discount Amount (₹)</label>
+            <input type="number" [(ngModel)]="couponForm.discountAmount" min="0" step="0.01" required>
+          </div>
+        } @else {
+          <div class="input-group">
+            <label>Discount Percentage (%)</label>
+            <input type="number" [(ngModel)]="couponForm.discountPercent" min="0" max="100" step="0.1" required>
+          </div>
+        }
+        <div class="input-group">
+          <label>Valid From (Optional)</label>
+          <input type="datetime-local" [(ngModel)]="couponForm.validFrom">
+        </div>
+        <div class="input-group">
+          <label>Valid Until (Optional)</label>
+          <input type="datetime-local" [(ngModel)]="couponForm.validTo">
+        </div>
+        <div class="input-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="couponForm.isActive">
+            Active
+          </label>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" (click)="submitCoupon()" [disabled]="loading">
+            {{ loading ? 'Saving...' : (editingCoupon ? 'Update Coupon' : 'Create Coupon') }}
+          </button>
+          @if (editingCoupon) {
+            <button class="btn btn-secondary" (click)="resetCouponForm()">Cancel</button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Add Schedule Form -->
+    @if (activeTab === 'add-schedule') {
+      <div class="form-card card glass-panel">
+        <h2>Create Schedule</h2>
+        <div class="input-group">
+          <label>Select Bus</label>
+          <select [(ngModel)]="scheduleForm.busId">
+            <option value="0">Choose a bus</option>
+            @for (b of buses; track b.id) {
+              <option [value]="b.id">{{ b.registrationNumber }}</option>
+            }
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Select Route</label>
+          <select [(ngModel)]="scheduleForm.routeId">
+            <option value="0">Choose a route</option>
+            @for (r of routes; track r.id) {
+              <option [value]="r.id">{{ r.source?.name }} → {{ r.destination?.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Departure Time</label>
+          <input type="datetime-local" [(ngModel)]="scheduleForm.departureTime">
+        </div>
+        <div class="input-group">
+          <label>Arrival Time</label>
+          <input type="datetime-local" [(ngModel)]="scheduleForm.arrivalTime">
+        </div>
+        <div class="input-group">
+          <label>Base Price (₹)</label>
+          <input type="number" [(ngModel)]="scheduleForm.basePrice" min="0">
+        </div>
+        <div class="input-group">
+          <label>Pickup Point</label>
+          <input type="text" [(ngModel)]="scheduleForm.pickupPoint" placeholder="e.g., Central Bus Stand">
+        </div>
+        <div class="input-group">
+          <label>Drop Point</label>
+          <input type="text" [(ngModel)]="scheduleForm.dropPoint" placeholder="e.g., Main Terminal">
+        </div>
+        <button class="btn btn-primary" (click)="submitSchedule()" [disabled]="loading">
+          {{ loading ? 'Creating...' : 'Create Schedule' }}
+        </button>
+      </div>
+    }
+
+  </div>
+</div>

@@ -1,0 +1,95 @@
+.route-map-container {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.route-map {
+  width: 100%;
+  min-height: 300px;
+  background-color: #f5f5f5;
+}
+
+.map-legend {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  font-size: 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  margin-right: 8px;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.source-marker {
+  background-color: #4CAF50;
+}
+
+.dest-marker {
+  background-color: #F44336;
+}
+
+/* Custom marker styles */
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Leaflet popup styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 6px;
+}
+
+.leaflet-popup-content {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.leaflet-popup-content strong {
+  color: #333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .map-legend {
+    font-size: 12px;
+    padding: 8px;
+  }
+  
+  .legend-marker {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+  
+  .route-map {
+    min-height: 250px;
+  }
+}

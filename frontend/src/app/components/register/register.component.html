@@ -1,0 +1,69 @@
+<div class="auth-page">
+  <div class="auth-card card glass-panel">
+    <div class="auth-header">
+
+      <h1>Create Account</h1>
+      <p>Join NexBus today</p>
+    </div>
+    <form (ngSubmit)="onSubmit()">
+      @if (error) { <div class="alert alert-error">{{ error }}</div> }
+      @if (success) { <div class="alert alert-success">{{ success }}</div> }
+
+      <div class="role-tabs">
+        <button type="button" [class.active]="form.role==='User'" (click)="form.role='User'">Traveler</button>
+        <button type="button" [class.active]="form.role==='Operator'" (click)="form.role='Operator'">Operator</button>
+
+      </div>
+
+      <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" [(ngModel)]="form.name" name="name" placeholder="John Doe" required [class.error]="fieldErrors['name']">
+        @if (fieldErrors['name']) {
+          <div class="field-error">{{ fieldErrors['name'] }}</div>
+        }
+      </div>
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="form.email" name="email" placeholder="you@example.com" required [class.error]="fieldErrors['email']">
+        @if (fieldErrors['email']) {
+          <div class="field-error">{{ fieldErrors['email'] }}</div>
+        }
+      </div>
+      @if (form.role === 'Operator') {
+        <div class="input-group">
+          <label>Company Name</label>
+          <input type="text" [(ngModel)]="form.companyName" name="companyName" placeholder="Your Bus Company Ltd." required [class.error]="fieldErrors['companyName']">
+          @if (fieldErrors['companyName']) {
+            <div class="field-error">{{ fieldErrors['companyName'] }}</div>
+          }
+        </div>
+        <div class="input-group">
+          <label>Head Office Location</label>
+          <select [(ngModel)]="form.headOfficeLocationId" name="headOfficeLocationId" required [class.error]="fieldErrors['headOfficeLocationId']">
+            <option value="">Select your head office location</option>
+            @for (location of locations; track location.id) {
+              <option [value]="location.id">{{ location.name }}, {{ location.state }}</option>
+            }
+          </select>
+          @if (fieldErrors['headOfficeLocationId']) {
+            <div class="field-error">{{ fieldErrors['headOfficeLocationId'] }}</div>
+          }
+        </div>
+      }
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="form.password" name="password" placeholder="Min 6 characters" required minlength="6" [class.error]="fieldErrors['password']">
+        @if (fieldErrors['password']) {
+          <div class="field-error">{{ fieldErrors['password'] }}</div>
+        }
+      </div>
+      @if (form.role === 'Operator') {
+        <div class="info-box">⚠️ Operator accounts require Admin approval before you can add buses.</div>
+      }
+      <button type="submit" class="btn btn-primary auth-btn" [disabled]="loading">
+        {{ loading ? 'Creating account...' : 'Create Account' }}
+      </button>
+    </form>
+    <p class="auth-footer">Already have an account? <a routerLink="/login">Sign in</a></p>
+  </div>
+</div>

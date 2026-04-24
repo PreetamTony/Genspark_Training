@@ -1,0 +1,186 @@
+<div class="seat-page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Select Your Seats</h1>
+      <div class="route-info">{{ from }} → {{ to }} &nbsp;|&nbsp; {{ dep | date:'EEE, dd MMM' }}</div>
+    </div>
+
+    <!-- Route Map Section -->
+    @if (from && to) {
+      <div class="route-map-section">
+        <div class="route-map-card">
+          <h3>Your Journey Route</h3>
+          <app-route-map 
+            [source]="from" 
+            [destination]="to"
+            height="300px">
+          </app-route-map>
+        </div>
+      </div>
+    }
+
+    
+@if (loading) {
+      <div class="loading"><div class="spinner"></div><p>Loading seat map...</p></div>
+    }
+
+    @if (error) {
+      <div class="alert alert-error">{{ error }}</div>
+    }
+
+    @if (seatData && !loading) {
+      <div class="seat-layout-container">
+        <!-- Bus Information Section -->
+        <div class="bus-info-section">
+          <app-bus-details [bus]="busDetails" [schedule]="getCurrentSchedule()"></app-bus-details>
+        </div>
+
+        <div class="seat-map-wrapper">
+          <div class="bus-front">
+            <div class="steering">Driver</div>
+          </div>
+
+          <div class="seat-map">
+            <div class="legend">
+              <span class="legend-item"><span class="dot available"></span> Available</span>
+              <span class="legend-item"><span class="dot selected-male"></span> Selected (Male)</span>
+              <span class="legend-item"><span class="dot selected-female"></span> Selected (Female)</span>
+              <span class="legend-item"><span class="dot booked"></span> Booked</span>
+            </div>
+
+            @for (rowData of rows; track rowData.row) {
+              <div class="seat-row">
+                <span class="row-num">{{ rowData.row }}</span>
+                @for (configSeat of rowData.seats; track configSeat.label) {
+                  @let seat = getSeatForConfig(configSeat);
+                  <button
+                    class="seat"
+                    [class.available]="getSeatColor(seat) === 'available'"
+                    [class.selected-male]="getSeatColor(seat) === 'selected-male'"
+                    [class.selected-female]="getSeatColor(seat) === 'selected-female'"
+                    [class.selected]="getSeatColor(seat) === 'selected'"
+                    [class.booked]="getSeatColor(seat) === 'booked'"
+                    [disabled]="!seat || bookedSeatIds.has(seat?.id) || locking"
+                    (click)="toggleSeat(seat)"
+                    [title]="getPassengerDisplay(seat) || configSeat.label">
+                    {{ configSeat.label }}
+                    @if (getPassengerDisplay(seat)) {
+                      <div class="passenger-info">{{ getPassengerDisplay(seat) }}</div>
+                    }
+                  </button>
+                  @if (configSeat.col === 'B' || configSeat.col === 'M') {
+                    <span class="aisle"></span>
+                  }
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="booking-summary card glass-panel">
+          <h3>Booking Summary</h3>
+          <div class="route-summary">{{ from }} → {{ to }}</div>
+
+          <div class="selected-seats">
+            @if (selectedSeats.length === 0) {
+              <p class="no-seats">No seats selected yet</p>
+            } @else {
+              @for (seat of selectedSeats; track seat.id) {
+                <div class="seat-chip" [class.male]="passengerDetails[seat.id]?.gender === 'Male'" [class.female]="passengerDetails[seat.id]?.gender === 'Female'">
+                  <span class="seat-label">Seat {{ seat.seatNumber }}</span>
+                  <span class="passenger-name">{{ passengerDetails[seat.id]?.name || 'Add passenger' }}</span>
+                  <span class="passenger-gender">{{ passengerDetails[seat.id]?.gender === 'Male' ? '👦' : passengerDetails[seat.id]?.gender === 'Female' ? '👧' : '👤' }}</span>
+                  <button (click)="removeSeat(seat)" class="remove-seat">×</button>
+                </div>
+              }
+            }
+          </div>
+
+
+          <div class="coupon-section">
+            <label for="couponCode">Coupon Code</label>
+            <div class="coupon-input-group">
+              <input id="couponCode" type="text" [(ngModel)]="couponCode" maxlength="50" placeholder="Enter coupon code" (blur)="validateCoupon()">
+              <button class="btn btn-secondary btn-sm" (click)="validateCoupon()" [disabled]="!couponCode.trim() || validatingCoupon">
+                {{ validatingCoupon ? 'Validating...' : 'Apply' }}
+              </button>
+            </div>
+            <span class="coupon-message" *ngIf="couponMessage">{{ couponMessage }}</span>
+          </div>
+
+          <div class="price-breakdown">
+            <div class="price-row">
+              <span>Base Price × {{ selectedSeats.length }}</span>
+              <span>₹{{ selectedSeats.length * basePrice }}</span>
+            </div>
+            <div class="price-row">
+              <span>Convenience Fee × {{ selectedSeats.length }}</span>
+              <span>₹{{ selectedSeats.length * convenienceFee }}</span>
+            </div>
+            <div class="price-row" *ngIf="discount > 0">
+              <span>Coupon Discount</span>
+              <span class="discount">- ₹{{ discount }}</span>
+            </div>
+            <div class="price-row total">
+              <span>Total</span>
+              <span>₹{{ totalAmount - discount }}</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary checkout-btn"
+            [disabled]="selectedSeats.length === 0 || !allSeatsHavePassengerDetails()"
+            (click)="proceedToCheckout()">
+            @if (selectedSeats.length === 0) {
+              Select a seat
+            } @else if (!allSeatsHavePassengerDetails()) {
+              Add passenger details
+            } @else {
+              Proceed to Payment
+            }
+          </button>
+          <p class="lock-notice">Seats are held for 10 minutes</p>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Passenger Details Modal -->
+@if (showPassengerForm) {
+  <div class="modal-overlay" (click)="showPassengerForm = false">
+    <div class="modal-content passenger-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Add Passenger Details</h3>
+        <button class="modal-close" (click)="showPassengerForm = false">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="seat-info">
+          <span class="seat-number">Seat {{ currentSeatForPassenger?.seatNumber }}</span>
+        </div>
+        <form (ngSubmit)="savePassengerDetails(passengerName.value, +passengerAge.value, passengerGender.value)">
+          <div class="form-group">
+            <label for="passengerName">Name *</label>
+            <input id="passengerName" type="text" #passengerName required maxlength="50" placeholder="Enter passenger name">
+          </div>
+          <div class="form-group">
+            <label for="passengerAge">Age *</label>
+            <input id="passengerAge" type="number" #passengerAge required min="1" max="120" placeholder="Enter age">
+          </div>
+          <div class="form-group">
+            <label for="passengerGender">Gender *</label>
+            <select id="passengerGender" #passengerGender required>
+              <option value="">Select gender</option>
+              <option value="Male">Male 👦</option>
+              <option value="Female">Female 👧</option>
+              <option value="Other">Other 👤</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="showPassengerForm = false">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Details</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

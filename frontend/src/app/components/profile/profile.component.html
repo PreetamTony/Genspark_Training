@@ -1,0 +1,56 @@
+<div class="profile-page">
+  <div class="container">
+    <div class="profile-header card glass-panel">
+      <div class="avatar">{{ user?.name?.[0] | uppercase }}</div>
+      <div class="user-info">
+        <h1>{{ user?.name }}</h1>
+        <p>{{ user?.email }}</p>
+        <span class="role-badge">{{ user?.role }}</span>
+      </div>
+      <button class="btn btn-outline logout-btn" (click)="logout()">Logout</button>
+    </div>
+
+    @if (message) { <div class="message-bar">{{ message }}</div> }
+
+    <div class="tabs">
+      <button [class.active]="activeTab==='upcoming'" (click)="activeTab='upcoming'">
+        🕐 Upcoming ({{ upcoming.length }})
+      </button>
+      <button [class.active]="activeTab==='past'" (click)="activeTab='past'">
+        ✅ Past ({{ past.length }})
+      </button>
+      <button [class.active]="activeTab==='cancelled'" (click)="activeTab='cancelled'">
+        ❌ Cancelled ({{ cancelled.length }})
+      </button>
+    </div>
+
+    @if (loading) { <div class="loading"><div class="spinner"></div></div> }
+
+    <div class="bookings-list">
+      @let list = activeTab === 'upcoming' ? upcoming : activeTab === 'past' ? past : cancelled;
+      @if (list.length === 0 && !loading) {
+        <div class="empty-state">No {{ activeTab }} trips found.</div>
+      }
+      @for (booking of list; track booking.id) {
+        <div class="booking-card card glass-panel">
+          <div class="booking-top">
+            <div class="booking-route">{{ booking.from }} → {{ booking.to }}</div>
+            <div class="booking-status" [class]="booking.status.toLowerCase()">{{ booking.status }}</div>
+          </div>
+          <div class="booking-details">
+            <span>🗓 {{ booking.departureTime | date:'EEE, dd MMM yyyy HH:mm' }}</span>
+            <span>🚌 {{ booking.operator }}</span>
+            <span>💺 {{ booking.seats?.join(', ') }}</span>
+            <span>₹{{ booking.totalPrice }}</span>
+          </div>
+          @if (activeTab === 'upcoming') {
+            <button class="btn btn-danger" [disabled]="cancellingId === booking.id"
+              (click)="cancelBooking(booking.id)">
+              {{ cancellingId === booking.id ? 'Cancelling...' : 'Cancel Booking' }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

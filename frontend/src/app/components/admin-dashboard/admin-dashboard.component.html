@@ -1,0 +1,151 @@
+<div class="dashboard-page">
+  <div class="container">
+    <div class="dash-header">
+      <h1>🛠️ Admin Dashboard</h1>
+      <p>Platform Overview & Control</p>
+    </div>
+
+    @if (message) { <div class="message-bar">{{ message }}</div> }
+
+    <div class="dash-tabs">
+      <button [class.active]="activeTab==='revenue'" (click)="activeTab='revenue'">📊 Revenue</button>
+      <button [class.active]="activeTab==='operators'" (click)="activeTab='operators'">🏢 Operators</button>
+      <button [class.active]="activeTab==='buses'" (click)="activeTab='buses'">🚌 Pending Buses</button>
+      <button [class.active]="activeTab==='config'" (click)="activeTab='config'">⚙️ Config</button>
+    </div>
+
+    <!-- Revenue -->
+    @if (activeTab === 'revenue' && revenue) {
+      <div class="stats-grid">
+        <div class="stat-card card glass-panel">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value">₹{{ revenue.totalRevenue | number }}</div>
+          <div class="stat-label">Total Revenue</div>
+        </div>
+        <div class="stat-card card glass-panel">
+          <div class="stat-icon">🏦</div>
+          <div class="stat-value">₹{{ revenue.platformFees | number }}</div>
+          <div class="stat-label">Platform Fees Collected</div>
+        </div>
+        <div class="stat-card card glass-panel">
+          <div class="stat-icon">🏢</div>
+          <div class="stat-value">{{ operators.length }}</div>
+          <div class="stat-label">Active Operators</div>
+        </div>
+      </div>
+
+      <h3 class="section-title">Operator Revenue Breakdown</h3>
+      <div class="table-card card glass-panel">
+        <table>
+          <thead><tr><th>Operator</th><th>Revenue</th></tr></thead>
+          <tbody>
+            @for (op of revenue.operatorRevenue; track op.operator) {
+              <tr><td>{{ op.operator }}</td><td>₹{{ op.revenue | number }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="section-title">🤖 AI Demand Forecast</h3>
+      <div class="forecast-grid">
+        @for (f of revenue.demandForecast; track f.route) {
+          <div class="forecast-card card glass-panel">
+            <div class="forecast-route">{{ f.route }}</div>
+            <div class="forecast-pct">{{ f.predicted }}% <span class="confidence" [class]="f.confidence.toLowerCase()">{{ f.confidence }}</span></div>
+            <div class="forecast-bar"><div class="forecast-fill" [style.width.%]="f.predicted"></div></div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Operators -->
+    @if (activeTab === 'operators') {
+      <div class="tab-content">
+        @for (op of operators; track op.id) {
+          <div class="item-card card glass-panel">
+            <div class="item-main">
+              <div class="item-title">{{ op.companyName }}</div>
+              <div class="item-sub">{{ op.email }} | {{ op.headOffice || 'No HQ set' }}</div>
+              <span class="status-badge" [class]="op.status.toLowerCase()">{{ op.status }}</span>
+            </div>
+            <div class="item-actions">
+              @if (op.status === 'PendingApproval') {
+                <button class="action-btn success" (click)="approveOp(op.id)">Approve</button>
+                <button class="action-btn danger" (click)="rejectOp(op.id)">Reject</button>
+              } @else if (op.status === 'Active') {
+                <button class="action-btn danger" (click)="toggleOp(op.id, false)">Disable</button>
+              } @else if (op.status === 'Disabled') {
+                <button class="action-btn success" (click)="toggleOp(op.id, true)">Enable</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Pending Buses -->
+    @if (activeTab === 'buses') {
+      <div class="tab-content">
+        @if (pendingBuses.length === 0) { <div class="empty">No pending bus approvals.</div> }
+        @for (bus of pendingBuses; track bus.id) {
+          <div class="item-card card glass-panel">
+            <div class="item-main">
+              <div class="item-title">{{ bus.registrationNumber }}</div>
+              <div class="item-sub">{{ bus.companyName }} | {{ bus.name }}</div>
+            </div>
+            <div class="item-actions">
+              <button class="action-btn success" (click)="approveBus(bus.id)">✅ Approve</button>
+              <button class="action-btn danger" (click)="rejectBus(bus.id)">❌ Reject</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Config -->
+    @if (activeTab === 'config') {
+      <div class="config-grid">
+        <div class="form-card card glass-panel">
+          <h3>Platform Convenience Fee</h3>
+          <div class="input-group">
+            <label>Fee per Seat (₹)</label>
+            <input type="number" [(ngModel)]="convenienceFee" placeholder="50">
+          </div>
+          <button class="btn btn-primary" (click)="setFee()">Update Fee</button>
+        </div>
+
+        <div class="form-card card glass-panel">
+          <h3>Add Location</h3>
+          <div class="input-group">
+            <label>City Name</label>
+            <input type="text" [(ngModel)]="newLocName" placeholder="Bengaluru">
+          </div>
+          <div class="input-group">
+            <label>State</label>
+            <input type="text" [(ngModel)]="newLocState" placeholder="Karnataka">
+          </div>
+          <button class="btn btn-primary" (click)="addLocation()">Add Location</button>
+        </div>
+
+        <div class="form-card card glass-panel">
+          <h3>Create Route</h3>
+          <div class="input-group">
+            <label>From</label>
+            <select [(ngModel)]="newRouteSrc">
+              <option value="0">Select source</option>
+              @for (l of locations; track l.id) { <option [value]="l.id">{{ l.name }}</option> }
+            </select>
+          </div>
+          <div class="input-group">
+            <label>To</label>
+            <select [(ngModel)]="newRouteDst">
+              <option value="0">Select destination</option>
+              @for (l of locations; track l.id) { <option [value]="l.id">{{ l.name }}</option> }
+            </select>
+          </div>
+          <button class="btn btn-primary" (click)="addRoute()">Create Route</button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

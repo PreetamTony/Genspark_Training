@@ -62,6 +62,7 @@ builder.Services.AddScoped<ISeatLockService, SeatLockService>();
 builder.Services.AddScoped<ICancellationService, CancellationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<NexBus.Services.IEmailService, NexBus.Services.EmailService>();
 
 // JWT Auth
 var jwtKey = builder.Configuration["Jwt:Key"]!;

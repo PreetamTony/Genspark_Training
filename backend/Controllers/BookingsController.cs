@@ -56,6 +56,7 @@ namespace backend.Controllers
         public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
         {
             var userId = GetUserId();
+            var passengerLookup = dto.Passengers?.ToDictionary(p => p.SeatId, p => p) ?? new Dictionary<int, PassengerDto>();
 
             var schedule = await _context.Schedules
                 .Include(s => s.Route).ThenInclude(r => r.Source)
@@ -139,6 +140,32 @@ namespace backend.Controllers
             foreach (var seatId in dto.SeatIds)
             {
                 _context.BookingSeats.Add(new BookingSeat { BookingId = booking.Id, SeatId = seatId });
+                
+                // Update seat status to Booked
+                var seat = await _context.Seats.FindAsync(seatId);
+                if (seat != null)
+                {
+                    seat.Status = SeatStatus.Booked;
+                }
+                
+                // Create passenger record using actual frontend passenger details.
+                passengerLookup.TryGetValue(seatId, out var passengerDto);
+                var passengerName = !string.IsNullOrWhiteSpace(passengerDto?.Name)
+                    ? passengerDto!.Name.Trim()
+                    : $"Passenger {seat.SeatNumber}";
+                var passengerAge = passengerDto?.Age > 0 ? passengerDto.Age : 25;
+                var gender = ParseGender(passengerDto?.Gender);
+                
+                var passenger = new Passenger
+                {
+                    BookingId = booking.Id,
+                    SeatId = seatId,
+                    Name = passengerName,
+                    Age = passengerAge,
+                    Gender = gender
+                };
+                _context.Passengers.Add(passenger);
+                
                 await _seatLock.ReleaseSeatAsync(dto.ScheduleId, seatId);
             }
             await _context.SaveChangesAsync();
@@ -200,8 +227,24 @@ namespace backend.Controllers
 
             return Ok(new { message = "Booking cancelled.", refundAmount = refund });
         }
+
+        private static Gender ParseGender(string? gender)
+        {
+            if (string.IsNullOrWhiteSpace(gender))
+                return Gender.Other;
+
+            if (Enum.TryParse<Gender>(gender.Trim(), true, out var parsed))
+                return parsed;
+
+            var normalized = gender.Trim().ToLowerInvariant();
+            return normalized switch
+            {
+                "f" => Gender.Female,
+                "m" => Gender.Male,
+                _ => Gender.Other
+            };
+        }
     }
 
     public class LockSeatDto { public int ScheduleId { get; set; } public int SeatId { get; set; } }
-    public class CreateBookingDto { public int ScheduleId { get; set; } public List<int> SeatIds { get; set; } = new(); }
 }

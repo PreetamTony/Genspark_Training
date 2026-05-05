@@ -14,13 +14,22 @@
 
     <div class="tabs">
       <button [class.active]="activeTab==='upcoming'" (click)="activeTab='upcoming'">
-        🕐 Upcoming ({{ upcoming.length }})
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 8v5l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        </span>
+        Upcoming ({{ upcoming.length }})
       </button>
       <button [class.active]="activeTab==='past'" (click)="activeTab='past'">
-        ✅ Past ({{ past.length }})
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        </span>
+        Past ({{ past.length }})
       </button>
       <button [class.active]="activeTab==='cancelled'" (click)="activeTab='cancelled'">
-        ❌ Cancelled ({{ cancelled.length }})
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="m15 9-6 6m0-6 6 6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        </span>
+        Cancelled ({{ cancelled.length }})
       </button>
     </div>
 
@@ -38,10 +47,30 @@
             <div class="booking-status" [class]="booking.status.toLowerCase()">{{ booking.status }}</div>
           </div>
           <div class="booking-details">
-            <span>🗓 {{ booking.departureTime | date:'EEE, dd MMM yyyy HH:mm' }}</span>
-            <span>🚌 {{ booking.operator }}</span>
-            <span>💺 {{ booking.seats?.join(', ') }}</span>
-            <span>₹{{ booking.totalPrice }}</span>
+            <span class="detail-item">
+              <span class="detail-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M8 2v3m8-3v3M3.5 9.5h17M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 18 20.5H6A2.5 2.5 0 0 1 3.5 18V7A2.5 2.5 0 0 1 6 4.5Z" /></svg>
+              </span>
+              {{ booking.departureTime | date:'EEE, dd MMM yyyy HH:mm' }}
+            </span>
+            <span class="detail-item">
+              <span class="detail-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 16V8a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v8M7.5 16h9M8 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM5 12h14" /></svg>
+              </span>
+              {{ booking.operator }}
+            </span>
+            <span class="detail-item">
+              <span class="detail-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 7a2 2 0 1 1 4 0v10a2 2 0 1 1-4 0V7Zm6 0a2 2 0 1 1 4 0v10a2 2 0 1 1-4 0V7Z" /></svg>
+              </span>
+              {{ booking.seats?.join(', ') }}
+            </span>
+            <span class="detail-item price">
+              <span class="detail-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M13.5 4.5 8 12h4l-1.5 7.5L16 12h-4l1.5-7.5Z" /></svg>
+              </span>
+              ₹{{ booking.totalPrice }}
+            </span>
           </div>
           @if (activeTab === 'upcoming') {
             <button class="btn btn-danger" [disabled]="cancellingId === booking.id"

@@ -1,8 +1,7 @@
 <div class="dashboard-page">
   <div class="container">
     <div class="dash-header">
-      <h1>🛠️ Admin Dashboard</h1>
-      <p>Platform Overview & Control</p>
+      <h1>Admin Dashboard</h1>
     </div>
 
     @if (message) { <div class="message-bar">{{ message }}</div> }
@@ -17,30 +16,60 @@
     <!-- Revenue -->
     @if (activeTab === 'revenue' && revenue) {
       <div class="stats-grid">
-        <div class="stat-card card glass-panel">
+        <div class="stat-card">
           <div class="stat-icon">💰</div>
           <div class="stat-value">₹{{ revenue.totalRevenue | number }}</div>
           <div class="stat-label">Total Revenue</div>
+          <div class="stat-trend">+12.5% from last month</div>
         </div>
-        <div class="stat-card card glass-panel">
+        <div class="stat-card">
           <div class="stat-icon">🏦</div>
           <div class="stat-value">₹{{ revenue.platformFees | number }}</div>
           <div class="stat-label">Platform Fees Collected</div>
+          <div class="stat-trend">+8.3% from last month</div>
         </div>
-        <div class="stat-card card glass-panel">
+        <div class="stat-card">
           <div class="stat-icon">🏢</div>
           <div class="stat-value">{{ operators.length }}</div>
           <div class="stat-label">Active Operators</div>
+          <div class="stat-trend">{{ operators.filter(op => op.status === 'Active').length }} approved</div>
         </div>
       </div>
 
-      <h3 class="section-title">Operator Revenue Breakdown</h3>
-      <div class="table-card card glass-panel">
+      <h3 class="section-title">📊 Operator Revenue Breakdown</h3>
+      <div class="table-card">
         <table>
-          <thead><tr><th>Operator</th><th>Revenue</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Operator</th>
+              <th>Revenue</th>
+              <th>Status</th>
+              <th>Performance</th>
+            </tr>
+          </thead>
           <tbody>
             @for (op of revenue.operatorRevenue; track op.operator) {
-              <tr><td>{{ op.operator }}</td><td>₹{{ op.revenue | number }}</td></tr>
+              <tr>
+                <td>
+                  <div class="operator-cell">
+                    <div class="operator-avatar">{{ op.operator.charAt(0) }}</div>
+                    <span>{{ op.operator }}</span>
+                  </div>
+                </td>
+                <td><strong>₹{{ op.revenue | number }}</strong></td>
+                <td>
+                  @if (operators.find(o => o.companyName === op.operator)?.status === 'Active') {
+                    <span class="status-badge active">Active</span>
+                  } @else {
+                    <span class="status-badge pendingapproval">Pending</span>
+                  }
+                </td>
+                <td>
+                  <div class="performance-bar">
+                    <div class="performance-fill" [style.width.%]="(op.revenue / revenue.totalRevenue) * 100"></div>
+                  </div>
+                </td>
+              </tr>
             }
           </tbody>
         </table>
@@ -60,22 +89,57 @@
 
     <!-- Operators -->
     @if (activeTab === 'operators') {
+      <div class="operators-overview">
+        <div class="overview-stats">
+          <div class="overview-card">
+            <div class="overview-count">{{ operators.length }}</div>
+            <div class="overview-label">Total Operators</div>
+          </div>
+          <div class="overview-card">
+            <div class="overview-count">{{ operators.filter(op => op.status === 'Active').length }}</div>
+            <div class="overview-label">Active</div>
+          </div>
+          <div class="overview-card">
+            <div class="overview-count">{{ operators.filter(op => op.status === 'PendingApproval').length }}</div>
+            <div class="overview-label">Pending Approval</div>
+          </div>
+          <div class="overview-card">
+            <div class="overview-count">{{ operators.filter(op => op.status === 'Disabled').length }}</div>
+            <div class="overview-label">Disabled</div>
+          </div>
+        </div>
+      </div>
+
       <div class="tab-content">
         @for (op of operators; track op.id) {
-          <div class="item-card card glass-panel">
+          <div class="item-card">
             <div class="item-main">
-              <div class="item-title">{{ op.companyName }}</div>
-              <div class="item-sub">{{ op.email }} | {{ op.headOffice || 'No HQ set' }}</div>
+              <div class="operator-info">
+                <div class="operator-avatar-large">{{ op.companyName.charAt(0) }}</div>
+                <div class="operator-details">
+                  <div class="item-title">{{ op.companyName }}</div>
+                  <div class="item-sub">{{ op.email }}</div>
+                  <div class="item-sub">{{ op.headOffice || 'No HQ set' }}</div>
+                </div>
+              </div>
               <span class="status-badge" [class]="op.status.toLowerCase()">{{ op.status }}</span>
             </div>
             <div class="item-actions">
               @if (op.status === 'PendingApproval') {
-                <button class="action-btn success" (click)="approveOp(op.id)">Approve</button>
-                <button class="action-btn danger" (click)="rejectOp(op.id)">Reject</button>
+                <button class="action-btn success" (click)="approveOp(op.id)">
+                  <span class="btn-icon">✓</span> Approve
+                </button>
+                <button class="action-btn danger" (click)="rejectOp(op.id)">
+                  <span class="btn-icon">✗</span> Reject
+                </button>
               } @else if (op.status === 'Active') {
-                <button class="action-btn danger" (click)="toggleOp(op.id, false)">Disable</button>
+                <button class="action-btn danger" (click)="toggleOp(op.id, false)">
+                  <span class="btn-icon">⏸</span> Disable
+                </button>
               } @else if (op.status === 'Disabled') {
-                <button class="action-btn success" (click)="toggleOp(op.id, true)">Enable</button>
+                <button class="action-btn success" (click)="toggleOp(op.id, true)">
+                  <span class="btn-icon">▶</span> Enable
+                </button>
               }
             </div>
           </div>

@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BusService } from '../../services/bus.service';
+import { EmailService } from '../../services/email.service';
+import { AuthService } from '../../services/auth.service';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -31,16 +33,23 @@ export class PaymentComponent implements OnInit {
   // Passenger details with gender information
   passengerDetails: { [key: number]: { name: string; age: number; gender: string } } = {};
   selectedSeats: any[] = [];
+  
+  // Coupon discount information
+  couponCode: string = '';
+  discount: number = 0;
+  couponMessage: string = '';
+
+  // Email confirmation fallback data
+  emailConfirmationData: any = null;
 
   constructor(
     private router: Router,
-    private busService: BusService
+    private busService: BusService,
+    private emailService: EmailService,
+    private authService: AuthService
   ) {
-    console.log('=== PAYMENT COMPONENT CONSTRUCTOR ===');
     const nav = this.router.getCurrentNavigation();
-    console.log('Navigation object:', nav);
     const state = nav?.extras?.state as any;
-    console.log('State data:', state);
     
     if (state) {
       this.booking = state.booking;
@@ -50,27 +59,14 @@ export class PaymentComponent implements OnInit {
       this.bookingId = state.booking?.bookingId || state.booking?.id;
       this.passengerDetails = state.passengerDetails || {};
       this.selectedSeats = state.selectedSeats || [];
-      console.log('Payment data initialized:', {
-        booking: this.booking,
-        bookingId: this.bookingId,
-        from: this.from,
-        to: this.to,
-        dep: this.dep,
-        passengerDetails: this.passengerDetails,
-        selectedSeats: this.selectedSeats
-      });
-    } else {
-      console.log('No state data found in navigation');
+      this.couponCode = state.couponCode || '';
+      this.discount = state.discount || 0;
+      this.couponMessage = state.couponMessage || '';
     }
   }
 
   ngOnInit() {
-    console.log('=== PAYMENT COMPONENT INIT ===');
-    console.log('Booking data:', this.booking);
-    console.log('Booking ID:', this.bookingId);
-    
     if (!this.booking) {
-      console.log('No booking data, redirecting to home');
       this.router.navigate(['/']);
       return;
     }
@@ -176,6 +172,10 @@ export class PaymentComponent implements OnInit {
       
       if (success) {
         this.step = 'confirmed';
+        
+        // Send confirmation email
+        this.sendConfirmationEmail();
+        
         // Clear sensitive payment data
         this.paymentDetails = {
           cardNumber: '',
@@ -191,6 +191,103 @@ export class PaymentComponent implements OnInit {
       
       this.loading = false;
     }, 2500);
+  }
+
+  private sendConfirmationEmail() {
+    // Prepare booking details for email
+    const bookingDetails = {
+      bookingId: this.bookingId,
+      bookingDate: this.booking?.bookingDate || new Date(),
+      passengerName: this.getPrimaryPassengerName(),
+      email: this.getPassengerEmail(),
+      seatNumbers: this.selectedSeats.map(seat => seat.seatNumber),
+      baseFare: this.ticketFare,
+      convenienceFee: this.booking?.convenienceFee || 0,
+      discountAmount: this.discountAmount,
+      totalAmount: this.finalAmount,
+      couponCode: this.couponCode
+    };
+
+    // Prepare trip details for email
+    const tripDetails = {
+      route: `${this.from} → ${this.to}`,
+      travelDate: this.dep,
+      departureTime: this.booking?.schedule?.departureTime || 'Not specified',
+      arrivalTime: this.booking?.schedule?.arrivalTime || 'Not specified',
+      busOperator: this.booking?.schedule?.bus?.operatorProfile?.name || 'NexBus',
+      busType: this.booking?.schedule?.bus?.busType || 'Not specified',
+      boardingPoint: this.booking?.boardingPoint || 'Not specified',
+      droppingPoint: this.booking?.droppingPoint || 'Not specified'
+    };
+
+    // Use the new backend email service
+    const userEmail = this.getPassengerEmail();
+    const userName = this.getPrimaryPassengerName();
+    
+    this.emailService.sendConfirmationEmail(bookingDetails, tripDetails).subscribe({
+      next: (response) => {
+        // Backend email sent successfully
+      },
+      error: (error) => {
+        // Backend email failed, using simulated email service as fallback
+        this.useSimulatedEmailFallback(bookingDetails, tripDetails);
+      }
+    });
+  }
+
+  private getPrimaryPassengerName(): string {
+    // Try to get the logged-in user's name first
+    const currentUser = this.authService.currentUser;
+    if (currentUser && currentUser.name) {
+      return currentUser.name;
+    }
+    
+    // Fallback to first passenger's name
+    const firstSeatId = this.selectedSeats[0]?.id;
+    if (firstSeatId && this.passengerDetails[firstSeatId]) {
+      return this.passengerDetails[firstSeatId].name;
+    }
+    
+    return 'NexBus Customer';
+  }
+
+  private getPassengerEmail(): string {
+    // Get the logged-in user's email from AuthService
+    const currentUser = this.authService.currentUser;
+    if (currentUser && currentUser.email) {
+      return currentUser.email;
+    }
+    
+    // Fallback to demo email if no user is logged in (shouldn't happen in normal flow)
+    console.warn('No logged-in user found, using fallback email');
+    return 'test@go-mail.us.to';
+  }
+
+  private showEmailConfirmationFallback(bookingDetails: any, tripDetails: any): void {
+    // Store booking details for UI display
+    this.emailConfirmationData = {
+      bookingDetails,
+      tripDetails,
+      showFallback: true
+    };
+  }
+
+  private useSimulatedEmailFallback(bookingDetails: any, tripDetails: any): void {
+    this.emailService.sendSimulatedConfirmationEmail(bookingDetails, tripDetails).subscribe({
+      next: (response) => {
+        // Store the simulated response for UI display
+        this.emailConfirmationData = {
+          bookingDetails,
+          tripDetails,
+          simulatedResponse: response,
+          showFallback: true
+        };
+      },
+      error: (error) => {
+        // Still show fallback UI even if simulation fails
+        this.showEmailConfirmationFallback(bookingDetails, tripDetails);
+      }
+    });
   }
 
   formatCardNumber() {
@@ -233,6 +330,29 @@ export class PaymentComponent implements OnInit {
     if (!this.paymentDetails.cardNumber) return '';
     const cleaned = this.paymentDetails.cardNumber.replace(/\s/g, '');
     if (cleaned.length < 4) return '•••• •••• •••• ••••';
-    return `•••• •••• •••• ${cleaned.slice(-4)}`;
+    return '•••• •••• •••• ' + cleaned.slice(-4);
+  }
+
+  // Calculate final amount with coupon discount
+  get finalAmount(): number {
+    const baseAmount = this.booking?.totalPrice || 0;
+    return Math.max(0, baseAmount - this.discount);
+  }
+
+  // Calculate ticket fare without convenience fee
+  get ticketFare(): number {
+    const baseFare = this.booking?.totalPrice || 0;
+    const convenienceFee = this.booking?.convenienceFee || 0;
+    return Math.max(0, baseFare - convenienceFee);
+  }
+
+  // Get discount amount for display
+  get discountAmount(): number {
+    return this.discount || 0;
+  }
+
+  // Check if coupon was applied
+  get hasCouponApplied(): boolean {
+    return !!(this.couponCode && this.discount > 0);
   }
 }

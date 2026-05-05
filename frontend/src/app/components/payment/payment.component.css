@@ -9,7 +9,22 @@
 .trip-date { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
 .price-box { border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 16px 0; margin-bottom: 24px; }
 .price-row-pay { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; color: var(--text-muted); }
+.price-row-pay.discount { color: #10b981; font-weight: 500; }
 .price-row-pay.total { color: var(--text-main); font-size: 20px; font-weight: 700; padding-top: 10px; border-top: 1px solid var(--border-color); margin-top: 10px; margin-bottom: 0; }
+
+.coupon-message {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+}
+
+.coupon-success {
+  color: #10b981;
+  font-size: 14px;
+  font-weight: 500;
+}
 .payment-methods h3 { font-size: 16px; margin-bottom: 12px; }
 .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 .method { padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; font-size: 14px; text-align: center; transition: all 0.2s; }

@@ -1,4 +1,5 @@
 using backend.Data;
+using backend.DTOs;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -344,6 +345,73 @@ namespace backend.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = $"Schedule cancelled. {affectedBookings.Count} passengers affected." });
+        }
+
+        /// <summary>
+        /// Get seat information with passenger gender details for a specific schedule
+        /// </summary>
+        [HttpGet("{scheduleId}/seats-with-gender")]
+        public async Task<ActionResult<List<SeatInfoDto>>> GetSeatsWithGenderInfo(int scheduleId)
+        {
+            try
+            {
+                var schedule = await _context.Schedules
+                    .Include(s => s.Bus)
+                    .FirstOrDefaultAsync(s => s.Id == scheduleId);
+
+                if (schedule == null)
+                {
+                    return NotFound(new { message = "Schedule not found." });
+                }
+
+                var seats = await _context.Seats
+                    .Where(s => s.BusId == schedule.BusId)
+                    .OrderBy(s => s.SeatNumber)
+                    .ToListAsync();
+
+                var seatInfos = new List<SeatInfoDto>();
+
+                foreach (var seat in seats)
+                {
+                    var seatInfo = new SeatInfoDto
+                    {
+                        Id = seat.Id,
+                        SeatNumber = seat.SeatNumber,
+                        Status = seat.Status
+                    };
+
+                    // Check if seat is booked and get passenger gender
+                    var bookingSeat = await _context.BookingSeats
+                        .Include(bs => bs.Booking)
+                        .Where(bs =>
+                            bs.SeatId == seat.Id &&
+                            bs.Booking.ScheduleId == scheduleId &&
+                            bs.Booking.Status == BookingStatus.Confirmed)
+                        .OrderByDescending(bs => bs.Booking.BookingDate)
+                        .FirstOrDefaultAsync();
+
+                    if (bookingSeat != null)
+                    {
+                        var passenger = await _context.Passengers
+                            .FirstOrDefaultAsync(p => p.BookingId == bookingSeat.BookingId && p.SeatId == seat.Id);
+
+                        if (passenger != null)
+                        {
+                            seatInfo.PassengerGender = passenger.Gender;
+                            seatInfo.PassengerName = passenger.Name;
+                            seatInfo.Status = SeatStatus.Booked;
+                        }
+                    }
+
+                    seatInfos.Add(seatInfo);
+                }
+
+                return Ok(seatInfos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving seat information.", error = ex.Message });
+            }
         }
     }
 

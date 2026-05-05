@@ -45,7 +45,17 @@
               <span class="legend-item"><span class="dot available"></span> Available</span>
               <span class="legend-item"><span class="dot selected-male"></span> Selected (Male)</span>
               <span class="legend-item"><span class="dot selected-female"></span> Selected (Female)</span>
+              <span class="legend-item"><span class="dot female-occupied"></span> Female Occupied 👧</span>
+              <span class="legend-item"><span class="dot male-occupied"></span> Male Occupied 👦</span>
               <span class="legend-item"><span class="dot booked"></span> Booked</span>
+            </div>
+
+            <!-- Safety Information -->
+            <div class="safety-info">
+              <div class="safety-icon">🛡️</div>
+              <div class="safety-text">
+                <strong>Gender-Based Seat Coloring:</strong> Pink seats indicate female passengers for enhanced safety awareness. This helps all passengers identify seat occupancy for a safer travel experience.
+              </div>
             </div>
 
             @for (rowData of rows; track rowData.row) {
@@ -53,21 +63,26 @@
                 <span class="row-num">{{ rowData.row }}</span>
                 @for (configSeat of rowData.seats; track configSeat.label) {
                   @let seat = getSeatForConfig(configSeat);
-                  <button
-                    class="seat"
-                    [class.available]="getSeatColor(seat) === 'available'"
-                    [class.selected-male]="getSeatColor(seat) === 'selected-male'"
-                    [class.selected-female]="getSeatColor(seat) === 'selected-female'"
-                    [class.selected]="getSeatColor(seat) === 'selected'"
-                    [class.booked]="getSeatColor(seat) === 'booked'"
-                    [disabled]="!seat || bookedSeatIds.has(seat?.id) || locking"
-                    (click)="toggleSeat(seat)"
-                    [title]="getPassengerDisplay(seat) || configSeat.label">
-                    {{ configSeat.label }}
-                    @if (getPassengerDisplay(seat)) {
-                      <div class="passenger-info">{{ getPassengerDisplay(seat) }}</div>
-                    }
-                  </button>
+                  @if (seat) {
+                    <button
+                      class="seat"
+                      [ngClass]="getSeatClassMap(seat)"
+                      [disabled]="bookedSeatIds.has(seat?.id) || locking"
+                      (click)="toggleSeat(seat)"
+                      [title]="getPassengerDisplay(seat) || seat.passengerName || configSeat.label">
+                      {{ configSeat.label }}
+                      @if (getPassengerDisplay(seat) || seat.passengerName) {
+                        <div class="passenger-info">{{ getPassengerDisplay(seat) || seat.passengerName }}</div>
+                      }
+                    </button>
+                  } @else {
+                    <button
+                      class="seat unavailable"
+                      disabled
+                      [title]="configSeat.label + ' (Unavailable)'">
+                      {{ configSeat.label }}
+                    </button>
+                  }
                   @if (configSeat.col === 'B' || configSeat.col === 'M') {
                     <span class="aisle"></span>
                   }

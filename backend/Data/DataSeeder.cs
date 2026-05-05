@@ -153,6 +153,42 @@ public static class DataSeeder
 
         // Platform convenience fee
         db.PlatformConfigs.Add(new PlatformConfig { Key = "ConvenienceFee", Value = "50" });
+
+        // Add test coupons for demo purposes
+        var coupons = new[]
+        {
+            new Coupon 
+            { 
+                OperatorId = opProfile.Id, 
+                Code = "SAVE20", 
+                DiscountPercent = 20, 
+                DiscountAmount = 0,
+                ValidFrom = DateTime.UtcNow.AddDays(-1),
+                ValidTo = DateTime.UtcNow.AddDays(30),
+                IsActive = true
+            },
+            new Coupon 
+            { 
+                OperatorId = opProfile.Id, 
+                Code = "SAVE10", 
+                DiscountPercent = 10, 
+                DiscountAmount = 0,
+                ValidFrom = DateTime.UtcNow.AddDays(-1),
+                ValidTo = DateTime.UtcNow.AddDays(30),
+                IsActive = true
+            },
+            new Coupon 
+            { 
+                OperatorId = opProfile.Id, 
+                Code = "SUMMER", 
+                DiscountPercent = 15, 
+                DiscountAmount = 0,
+                ValidFrom = DateTime.UtcNow.AddDays(-1),
+                ValidTo = DateTime.UtcNow.AddDays(30),
+                IsActive = true
+            }
+        };
+        db.Coupons.AddRange(coupons);
         db.SaveChanges();
     }
 

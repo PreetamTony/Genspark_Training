@@ -46,15 +46,26 @@
         <div class="price-box">
           <div class="price-row-pay">
             <span>Ticket Fare</span>
-            <span>₹{{ booking.totalPrice - booking.convenienceFee }}</span>
+            <span>₹{{ ticketFare }}</span>
           </div>
           <div class="price-row-pay">
             <span>Convenience Fee</span>
             <span>₹{{ booking.convenienceFee }}</span>
           </div>
+          
+          @if (hasCouponApplied) {
+            <div class="price-row-pay discount">
+              <span>Coupon Discount ({{ couponCode }})</span>
+              <span>-₹{{ discountAmount }}</span>
+            </div>
+            <div class="coupon-message">
+              <span class="coupon-success">{{ couponMessage }}</span>
+            </div>
+          }
+          
           <div class="price-row-pay total">
             <span>Total Payable</span>
-            <span>₹{{ booking.totalPrice }}</span>
+            <span>₹{{ finalAmount }}</span>
           </div>
         </div>
 

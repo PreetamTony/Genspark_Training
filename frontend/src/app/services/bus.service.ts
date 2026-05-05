@@ -19,6 +19,10 @@ export class BusService {
     return this.http.get<any>(`${this.API}/schedules/${scheduleId}/seats`);
   }
 
+  getSeatsWithGenderInfo(scheduleId: number) {
+    return this.http.get<any>(`${this.API}/schedules/${scheduleId}/seats-with-gender`);
+  }
+
   getScheduleDetails(scheduleId: number) {
     return this.http.get<any>(`${this.API}/schedules/${scheduleId}`);
   }
@@ -69,6 +73,15 @@ export class BusService {
 
   createBookingWithCoupon(scheduleId: number, seatIds: number[], couponCode: string) {
     return this.http.post<any>(`${this.API}/bookings`, { scheduleId, seatIds, couponCode });
+  }
+
+  createBookingWithPassengers(
+    scheduleId: number,
+    seatIds: number[],
+    couponCode: string,
+    passengers: Array<{ seatId: number; name: string; age: number; gender: string }>
+  ) {
+    return this.http.post<any>(`${this.API}/bookings`, { scheduleId, seatIds, couponCode, passengers });
   }
 
   getMyBookings() {

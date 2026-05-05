@@ -165,20 +165,43 @@ export class SeatSelectionComponent implements OnInit {
     this.error = '';
     console.log('Loading seats for schedule:', this.scheduleId);
 
-    // Load seat data only for now
-    this.busService.getSeatAvailability(this.scheduleId).subscribe({
+    // Load seat data with gender information
+    this.busService.getSeatsWithGenderInfo(this.scheduleId).subscribe({
       next: (seatData) => {
         console.log('Seat data received:', seatData);
         this.loading = false;
         
-        if (!seatData || !seatData.seats || !Array.isArray(seatData.seats)) {
+        if (!seatData || !Array.isArray(seatData)) {
           this.error = 'No seat information available.';
           return;
         }
 
-        // Set seat data
-        this.seatData = seatData;
-        this.bookedSeatIds = new Set(seatData.seats.filter((s: any) => s.isBooked).map((s: any) => s.id));
+        // Create compatible data structure for existing frontend logic
+        const seatDataWithSeats = {
+          seats: seatData,
+          layoutType: 'Seater',
+          seatConfiguration: this.generateSeatConfiguration(seatData)
+        };
+
+        // Set seat data with gender information
+        this.seatData = seatDataWithSeats;
+        this.bookedSeatIds = new Set(seatData.filter((s: any) => s.status === 'Booked').map((s: any) => s.id));
+        
+        // Process gender information for booked seats
+        seatData.forEach((seat: any) => {
+          if (seat.status === 'Booked' && seat.passengerGender) {
+            const normalizedGender = String(seat.passengerGender).trim().toLowerCase();
+            const isFemaleFromDto = seat.isFemaleOccupied === true;
+            const isMaleFromDto = seat.isMaleOccupied === true;
+            const isOtherFromDto = seat.isOtherOccupied === true;
+
+            // Preserve boolean flags from backend DTO and only fallback to string matching.
+            seat.isFemaleOccupied = isFemaleFromDto || normalizedGender === 'female';
+            seat.isMaleOccupied = isMaleFromDto || normalizedGender === 'male';
+            seat.isOtherOccupied = isOtherFromDto || normalizedGender === 'other';
+            seat.passengerName = seat.passengerName || 'Passenger';
+          }
+        });
         
         // Set basic bus details (we'll enhance this later)
         this.busDetails = {
@@ -211,16 +234,11 @@ export class SeatSelectionComponent implements OnInit {
         console.log('Bus details set:', this.busDetails);
         console.log('Booked seats:', this.bookedSeatIds);
 
-        // Create basic configuration if missing
-        if (!seatData.seatConfiguration || !Array.isArray(seatData.seatConfiguration)) {
-          console.warn('No seat configuration found, creating basic layout');
-          seatData.seatConfiguration = this.createBasicSeatConfiguration(seatData.seats);
-        }
-
-        this.seatData = seatData;
+        // Set the processed seat data
+        this.seatData = seatDataWithSeats;
         
         console.log('Seats loaded successfully:', {
-          totalSeats: seatData.seats.length,
+          totalSeats: seatData.length,
           bookedSeats: this.bookedSeatIds.size,
           rows: this.rows.length
         });
@@ -339,9 +357,18 @@ export class SeatSelectionComponent implements OnInit {
         next: () => {
           console.log('All seats locked successfully, creating booking...');
           const seatIds = this.selectedSeats.map(s => s.id);
+          const passengers = this.selectedSeats.map((seat: any) => {
+            const passenger = this.passengerDetails[seat.id];
+            return {
+              seatId: seat.id,
+              name: passenger?.name?.trim() || `Passenger ${seat.seatNumber}`,
+              age: Number(passenger?.age) || 25,
+              gender: passenger?.gender || 'Other'
+            };
+          });
           
           // Create booking after all seats are locked
-          this.busService.createBookingWithCoupon(this.scheduleId, seatIds, this.couponCode).subscribe({
+          this.busService.createBookingWithPassengers(this.scheduleId, seatIds, this.couponCode, passengers).subscribe({
             next: (res: any) => {
               console.log('Booking created successfully:', res);
               this.clearSavedSelection();
@@ -363,7 +390,10 @@ export class SeatSelectionComponent implements OnInit {
                   to: this.to, 
                   dep: this.dep,
                   passengerDetails: this.passengerDetails,
-                  selectedSeats: this.selectedSeats
+                  selectedSeats: this.selectedSeats,
+                  couponCode: this.couponCode,
+                  discount: this.discount,
+                  couponMessage: this.couponMessage
                 } 
               });
             },
@@ -433,10 +463,49 @@ export class SeatSelectionComponent implements OnInit {
 
   // Get passenger details for display
   getPassengerDisplay(seat: any): string {
+    if (!seat || !seat.id) return '';
     const passenger = this.passengerDetails[seat.id];
     if (!passenger) return '';
     const genderIcon = passenger.gender === 'Male' ? '👦' : passenger.gender === 'Female' ? '👧' : '👤';
     return `${genderIcon} ${passenger.name}`;
+  }
+
+  // Generate seat configuration from seat data
+  generateSeatConfiguration(seats: any[]): any[] {
+    const config: any[] = [];
+    const rows = new Map<number, any[]>();
+    
+    // Group seats by row
+    seats.forEach(seat => {
+      const match = seat.seatNumber.match(/(\d+)([A-Z])/);
+      if (!match) return;
+      
+      const row = parseInt(match[1]);
+      const col = match[2];
+      
+      if (!rows.has(row)) {
+        rows.set(row, []);
+      }
+      
+      rows.get(row)!.push({
+        label: seat.seatNumber,
+        col: col,
+        row: row
+      });
+    });
+    
+    // Sort and create configuration
+    Array.from(rows.keys()).sort((a, b) => a - b).forEach(rowNum => {
+      const rowSeats = rows.get(rowNum)!;
+      rowSeats.sort((a, b) => a.col.localeCompare(b.col));
+      
+      config.push({
+        row: rowNum,
+        seats: rowSeats
+      });
+    });
+    
+    return config;
   }
 
   // Check if seat is selected
@@ -446,16 +515,45 @@ export class SeatSelectionComponent implements OnInit {
 
   // Get seat color based on gender
   getSeatColor(seat: any): string {
-    if (!seat || this.bookedSeatIds.has(seat?.id)) {
+    if (!seat || !seat.id) {
       return 'booked';
     }
+    
+    if (this.bookedSeatIds.has(seat?.id)) {
+      // Check if booked seat has gender information for safety coloring
+      if (seat?.isFemaleOccupied) {
+        return 'booked female-occupied';
+      } else if (seat?.isMaleOccupied) {
+        return 'booked male-occupied';
+      } else if (seat?.isOtherOccupied) {
+        return 'booked other-occupied';
+      }
+      return 'booked';
+    }
+    
     if (this.isSeatSelected(seat?.id)) {
       const passenger = this.passengerDetails[seat.id];
       if (passenger?.gender === 'Male') return 'selected-male';
       if (passenger?.gender === 'Female') return 'selected-female';
       return 'selected';
     }
+    
     return 'available';
+  }
+
+  getSeatClassMap(seat: any): { [klass: string]: boolean } {
+    const color = this.getSeatColor(seat);
+    const colorTokens = new Set(color.split(' ').filter(Boolean));
+    return {
+      available: colorTokens.has('available'),
+      selected: colorTokens.has('selected'),
+      'selected-male': colorTokens.has('selected-male'),
+      'selected-female': colorTokens.has('selected-female'),
+      booked: colorTokens.has('booked'),
+      'female-occupied': colorTokens.has('female-occupied'),
+      'male-occupied': colorTokens.has('male-occupied'),
+      'other-occupied': colorTokens.has('other-occupied')
+    };
   }
 
   // Show passenger form for seat
@@ -475,7 +573,9 @@ export class SeatSelectionComponent implements OnInit {
 
   // Get seat for configuration
   getSeatForConfig(configSeat: any): any {
-    return this.seatData?.seats?.find((seat: any) => seat.seatNumber === configSeat.label);
+    if (!configSeat || !configSeat.label) return null;
+    const seat = this.seatData?.seats?.find((seat: any) => seat.seatNumber === configSeat.label);
+    return seat || null;
   }
 
   // Get current schedule for bus details display
@@ -492,12 +592,11 @@ export class SeatSelectionComponent implements OnInit {
 
   // Group seats by row for grid display
   get rows(): any[] {
-    if (!this.seatData?.seatConfiguration) return [];
-    const rowMap = new Map<number, any[]>();
-    for (const s of this.seatData.seatConfiguration) {
-      if (!rowMap.has(s.row)) rowMap.set(s.row, []);
-      rowMap.get(s.row)!.push(s);
+    if (!this.seatData?.seatConfiguration) {
+      return [];
     }
-    return Array.from(rowMap.entries()).map(([row, seats]) => ({ row, seats }));
+    
+    // The seatConfiguration is already in the correct format
+    return this.seatData.seatConfiguration;
   }
 }
